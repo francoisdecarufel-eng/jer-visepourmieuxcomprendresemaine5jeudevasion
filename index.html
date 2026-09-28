@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta viewport essentiel pour la responsivité et le tactile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>L'Évasion du Manoir Mathématique - Halloween</title>
+    <!-- Polices style dessin animé -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&family=Fredoka+One&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Palette globale Pixar/Ghibli Halloween */
+            --bg-color: #0f0518;
+            --text-color: #ffffff;
+            --accent-glow: #ff8800;
+            --hud-bg: rgba(15, 5, 25, 0.9);
+            --panel-bg: rgba(30, 15, 45, 0.95);
+            --success: #39ff14;
+            --error: #ff073a;
+            
+            /* Thèmes dynamiques */
+            --room-primary: #2d1b4e;
+            --room-secondary: #4a2b7a;
+            --door-glow: #ff9d00;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100vh; width: 100vw;
+            display: flex; flex-direction: column;
+            /* Texture de fond globale */
+            background-image: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%);
+        }
+
+        h1, h2, h3, .comic-font {
+            font-family: 'Fredoka One', cursive;
+            text-shadow: 2px 2px 0px #000, 4px 4px 10px rgba(0,0,0,0.6);
+        }
+
+        /* Système de particules magiques (CSS pur) */
+        #particles {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 1; overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            background: radial-gradient(circle, #ffaa00 0%, transparent 70%);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: float-up linear infinite;
+        }
+
+        @keyframes float-up {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        #game-layout {
+            display: grid;
+            grid-template-rows: 90px 1fr;
+            height: 100%; width: 100%;
+            position: relative; z-index: 10;
+        }
+
+        #hud {
+            background: var(--hud-bg);
+            border-bottom: 4px solid var(--accent-glow);
+            box-shadow: 0 5px 25px rgba(255, 136, 0, 0.4);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 20px; z-index: 100;
+        }
+
+        .hud-section { display: flex; align-items: center; gap: 15px; }
+
+        #room-title { font-size: 1.8rem; color: #ffd700; }
+
+        #code-tracker-container {
+            display: flex; flex-direction: column; align-items: center; gap: 2px;
+        }
+
+        .code-tracker-label {
+            font-size: 0.8rem; font-weight: bold; color: #ffaa00; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        #code-tracker {
+            display: flex; gap: 10px;
+            background: rgba(0,0,0,0.7); padding: 8px 15px;
+            border-radius: 12px; border: 2px solid #555;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        .code-slot-wrapper { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .slot-hint { font-size: 0.7rem; color: #888; font-weight: bold; }
+
+        .code-slot {
+            width: 45px; height: 55px;
+            background: #111; border: 2px inset #444; border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 2.2rem; font-weight: 900; color: #444;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .code-slot.filled {
+            color: var(--success); border-color: var(--success);
+            text-shadow: 0 0 15px var(--success);
+            box-shadow: inset 0 0 15px rgba(57, 255, 20, 0.3);
+            transform: scale(1.1);
+        }
+
+        #key-inventory { display: flex; gap: 8px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 15px; }
+        
+        .key-icon {
+            width: 35px; height: 35px; fill: #333; filter: drop-shadow(0 0 2px #000);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .key-icon.collected {
+            fill: #ffd700; filter: drop-shadow(0 0 10px #ffd700); transform: scale(1.2) rotate(15deg);
+        }
+
+        #room-environment {
+            position: relative;
+            background: radial-gradient(circle at center, var(--room-secondary) 0%, var(--room-primary) 100%);
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            padding: 20px; gap: 20px; overflow: hidden;
+            transition: background 1.5s ease;
+        }
+
+        /* Décoration de fond immersive */
+        #room-environment::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: 
+                radial-gradient(rgba(0,0,0,0) 30%, rgba(0,0,0,0.9) 100%),
+                repeating-linear-gradient(45deg, rgba(0,0,0,0.05) 0px, rgba(0,0,0,0.05) 2px, transparent 2px, transparent 4px);
+            pointer-events: none; z-index: 0;
+        }
+
+        .interactive-zone {
+            z-index: 10; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; position: relative;
+        }
+
+        /* Station des énigmes (Gauche) */
+        #puzzles-station {
+            grid-column: 1 / 2; grid-row: 1 / 3;
+            display: flex; flex-direction: column; gap: 15px;
+            padding-left: 20px;
+        }
+
+        .puzzle-trigger {
+            background: linear-gradient(135deg, #ff8c00, #d35400);
+            border: 4px solid #fff; border-radius: 50%;
+            width: 75px; height: 75px;
+            font-size: 2rem; color: white; cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.6), inset 0 -5px 15px rgba(0,0,0,0.4);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; justify-content: center; align-items: center;
+            font-family: 'Fredoka One', cursive; position: relative;
+        }
+
+        .puzzle-trigger::after {
+            content: attr(data-hint); position: absolute; bottom: -20px;
+            font-size: 0.8rem; font-family: 'Nunito'; background: #000; padding: 2px 8px;
+            border-radius: 10px; white-space: nowrap; opacity: 0; transition: opacity 0.3s;
+        }
+        .puzzle-trigger:hover::after { opacity: 1; }
+        .puzzle-trigger:hover { transform: translateY(-5px) scale(1.1); box-shadow: 0 15px 30px rgba(255, 140, 0, 0.8); }
+        
+        .puzzle-trigger.solved {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            box-shadow: 0 0 25px #2ecc71; cursor: default; pointer-events: none;
+            border-color: #bffff0;
+        }
+
+        /* Centre Visuel Mathématique */
+        #center-stage {
+            grid-column: 2 / 3; grid-row: 1 / 3;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .floating-math-art {
+            animation: float 5s ease-in-out infinite;
+            filter: drop-shadow(0 30px 20px rgba(0,0,0,0.6));
+            transform-origin: center bottom;
+        }
+
+        #chest-station {
+            grid-column: 3 / 4; grid-row: 1 / 2;
+            align-items: flex-end; padding-right: 50px;
+        }
+
+        .chest {
+            width: 160px; height: 130px;
+            background: linear-gradient(to bottom, #5c4033, #3e2723);
+            border-radius: 15px 15px 5px 5px; position: relative;
+            cursor: not-allowed; opacity: 0.6; filter: grayscale(0.8);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9), 0 20px 30px rgba(0,0,0,0.7);
+            transition: all 0.5s ease;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .chest::before { /* Couvercle */
+            content: ''; position: absolute; top: -25px;
+            width: 160px; height: 55px;
+            background: linear-gradient(to bottom, #795548, #4e342e);
+            border-radius: 30px 30px 0 0; border-bottom: 5px solid #111;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: bottom;
+        }
+        .chest .lock {
+            width: 45px; height: 55px; background: #555; position: absolute; top: 20px;
+            border-radius: 5px; border: 3px solid #333; z-index: 2; transition: all 0.3s;
+        }
+        .chest .lock::after {
+            content: ''; width: 12px; height: 24px; background: #111;
+            border-radius: 50% 50% 0 0; position: absolute; top: 15px; left: 13px;
+        }
+
+        .chest.active {
+            opacity: 1; filter: grayscale(0); cursor: pointer;
+            animation: chest-ready 2s infinite;
+        }
+        .chest.active .lock { background: #ffd700; border-color: #b8860b; box-shadow: 0 0 20px #ffd700; }
+        .chest.active:hover { transform: scale(1.05); }
+
+        .chest.opened {
+            cursor: default; animation: none; filter: drop-shadow(0 0 40px #ffd700);
+        }
+        .chest.opened::before { transform: translateY(-30px) rotateX(60deg); }
+        .chest.opened .lock { opacity: 0; }
+        
+        .chest-glow {
+            position: absolute; width: 100px; height: 100px; background: radial-gradient(circle, #ffd700, transparent 70%);
+            top: -20px; opacity: 0; transition: opacity 0.5s; z-index: 1; pointer-events: none;
+        }
+        .chest.opened .chest-glow { opacity: 1; animation: pulse-glow 2s infinite alternate; }
+
+        #door-station {
+            grid-column: 3 / 4; grid-row: 2 / 3;
+            align-items: flex-end; justify-content: flex-end;
+            padding-right: 30px; padding-bottom: 20px;
+        }
+
+        .magic-door-container { perspective: 1200px; width: 180px; height: 270px; }
+
+        .magic-door {
+            width: 100%; height: 100%; position: relative;
+            transform-style: preserve-3d; transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: not-allowed; opacity: 0.5; filter: grayscale(1);
+        }
+
+        .magic-door.unlocked {
+            opacity: 1; filter: grayscale(0) drop-shadow(0 0 25px var(--door-glow));
+            cursor: pointer; animation: door-unlocked-pulse 2s infinite;
+        }
+
+        .door-frame {
+            position: absolute; width: 100%; height: 100%;
+            border: 20px solid #222; border-bottom: none;
+            border-radius: 90px 90px 0 0;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.9), 0 20px 40px rgba(0,0,0,0.8);
+            background: #000; overflow: hidden;
+        }
+        
+        /* Portail lumineux à l'intérieur du cadre */
+        .portal-vortex {
+            position: absolute; inset: 0; opacity: 0; border-radius: 70px 70px 0 0;
+            background: conic-gradient(from 0deg, var(--door-glow), #fff, var(--door-glow));
+            animation: spin 3s linear infinite; transition: opacity 1s;
+        }
+        .magic-door.open .portal-vortex { opacity: 1; }
+
+        .door-panel {
+            position: absolute; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #5c3a21, #2a1b12);
+            border-radius: 70px 70px 0 0; transform-origin: left;
+            transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 4px solid #111; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; z-index: 2;
+        }
+        .door-panel::before {
+            content: ''; position: absolute; width: 100%; height: 100%;
+            background: repeating-linear-gradient(to right, transparent, transparent 42px, rgba(0,0,0,0.4) 42px, rgba(0,0,0,0.4) 45px);
+        }
+        .door-knob {
+            position: absolute; right: 20px; top: 50%;
+            width: 25px; height: 25px; background: #666; border-radius: 50%;
+            box-shadow: inset -3px -3px 5px rgba(0,0,0,0.6), 2px 5px 10px rgba(0,0,0,0.5);
+            transition: background 0.5s;
+        }
+        .magic-door.unlocked .door-knob { background: #ffd700; box-shadow: inset -3px -3px 5px rgba(184,134,11,0.8), 0 0 15px #ffd700; }
+
+        .magic-door.open .door-panel { transform: rotateY(-110deg); box-shadow: 30px 0 40px rgba(0,0,0,0.7); }
+
+        .overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.85);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000; backdrop-filter: blur(8px); opacity: 0; pointer-events: none;
+            transition: opacity 0.4s;
+        }
+        .overlay.visible { opacity: 1; pointer-events: auto; }
+
+        .modal-panel {
+            background: var(--panel-bg); border: 5px solid var(--accent-glow);
+            border-radius: 25px; padding: 35px; max-width: 850px; width: 92%; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9), inset 0 0 50px rgba(0,0,0,0.6);
+            position: relative; transform: scale(0.8) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            /* Texture grimoire */
+            background-image: radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 100%);
+        }
+        .overlay.visible .modal-panel { transform: scale(1) translateY(0); }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 20px; font-size: 2.5rem; color: #888;
+            cursor: pointer; font-family: 'Fredoka One'; line-height: 1; transition: color 0.2s;
+        }
+        .close-btn:hover { color: #fff; text-shadow: 0 0 10px #fff; }
+
+        .puzzle-header-info {
+            background: rgba(0,0,0,0.5); padding: 8px 20px; border-radius: 20px;
+            color: #ffcc00; font-weight: bold; margin-bottom: 15px; border: 1px solid #ffcc00;
+        }
+        .puzzle-title { font-size: 2.2rem; margin-bottom: 15px; color: #fff; text-shadow: 0 0 10px var(--accent-glow); }
+        .puzzle-question { font-size: 1.5rem; margin-bottom: 25px; line-height: 1.5; padding: 0 10px; }
+
+        /* Conteneur visuel mathématique robuste */
+        .math-visual-container {
+            background: rgba(0,0,0,0.4); border-radius: 20px; padding: 25px; margin-bottom: 25px;
+            width: 100%; display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 20px;
+            border: 2px dashed rgba(255,255,255,0.2); min-height: 150px;
+        }
+
+        .options-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; width: 100%;
+        }
+
+        .btn {
+            background: linear-gradient(to bottom, #6a1b9a, #4a148c);
+            border: 3px solid #ce93d8; color: white; padding: 18px 25px;
+            font-size: 1.4rem; border-radius: 15px; cursor: pointer;
+            font-family: 'Nunito', sans-serif; font-weight: bold;
+            transition: all 0.2s; box-shadow: 0 8px 15px rgba(0,0,0,0.4);
+            display: flex; justify-content: center; align-items: center;
+        }
+        .btn:hover {
+            transform: translateY(-4px); box-shadow: 0 12px 20px rgba(0,0,0,0.6);
+            background: linear-gradient(to bottom, #8e24aa, #6a1b9a); border-color: #fff;
+        }
+        
+        /* Boutons pour la sélection multiple (Trier/Classer) */
+        .selectable-item {
+            background: #2c3e50; border: 3px solid #34495e; padding: 15px; font-size: 1.8rem;
+            border-radius: 12px; cursor: pointer; transition: all 0.2s; font-family: 'Fredoka One';
+        }
+        .selectable-item.selected {
+            background: #27ae60; border-color: #2ecc71; box-shadow: 0 0 20px rgba(46, 204, 113, 0.6);
+            transform: scale(1.1);
+        }
+
+        .btn-submit {
+            background: linear-gradient(to bottom, #d35400, #a04000); border-color: #f39c12;
+            margin-top: 25px; font-size: 1.6rem; padding: 15px 40px; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .btn-submit:hover { background: linear-gradient(to bottom, #e67e22, #ba4a00); }
+
+        input.number-input {
+            font-size: 2.5rem; text-align: center; width: 180px; padding: 15px;
+            border-radius: 15px; border: 4px solid var(--accent-glow);
+            background: #111; color: #fff; font-family: 'Fredoka One';
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8); outline: none;
+        }
+        input.number-input:focus { border-color: #fff; box-shadow: 0 0 20px var(--accent-glow), inset 0 0 15px rgba(0,0,0,0.8); }
+
+        .keypad {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+            max-width: 320px; margin: 25px auto;
+        }
+        .key-btn {
+            background: #2c3e50; border: 3px solid #34495e; color: white;
+            font-size: 2.2rem; padding: 18px; border-radius: 12px; cursor: pointer;
+            font-family: 'Fredoka One'; box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+            transition: all 0.1s;
+        }
+        .key-btn:active { transform: translateY(4px); box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .key-btn:hover { background: #34495e; border-color: var(--accent-glow); }
+        .key-btn.clear { background: #c0392b; border-color: #e74c3c; }
+        .key-btn.enter { background: #27ae60; border-color: #2ecc71; grid-column: 2 / 4; }
+
+        .chest-code-display {
+            font-size: 3.5rem; letter-spacing: 15px; font-family: 'Fredoka One';
+            background: #000; padding: 20px 40px; border-radius: 20px;
+            border: 4px inset #444; color: var(--success); margin-bottom: 20px;
+            text-shadow: 0 0 20px var(--success); box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        @keyframes chest-ready { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-4deg); } 75% { transform: rotate(4deg); } }
+        @keyframes door-unlocked-pulse { 0%, 100% { filter: drop-shadow(0 0 15px var(--door-glow)); } 50% { filter: drop-shadow(0 0 40px var(--door-glow)); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse-glow { from { opacity: 0.6; transform: scale(0.9); } to { opacity: 1; transform: scale(1.1); } }
+
+        .feedback-text {
+            font-size: 4rem; font-family: 'Fredoka One'; position: absolute; z-index: 2000;
+            text-align: center; width: 100%; top: 40%; pointer-events: none;
+            opacity: 0; transform: scale(0.2); transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .feedback-text.show { opacity: 1; transform: scale(1); }
+        .feedback-text.correct { color: var(--success); text-shadow: 0 0 30px #000, 0 0 10px var(--success); }
+        .feedback-text.incorrect { color: var(--error); text-shadow: 0 0 30px #000, 0 0 10px var(--error); }
+
+        /* Écrans Début et Fin */
+        #start-screen, #end-screen {
+            background-color: #0f0518;
+            background-image: 
+                radial-gradient(circle at 50% 30%, rgba(255, 136, 0, 0.2) 0%, transparent 60%),
+                url('data:image/svg+xml;utf8,<svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="%230f0518"/><circle cx="85%" cy="15%" r="100" fill="%23ffd700" opacity="0.9"/><path d="M0,100 C20,80 80,80 100,100 L100,100 L0,100 Z" fill="%23000"/></svg>');
+            background-size: cover; background-position: center; flex-direction: column; gap: 30px;
+        }
+        .hero-title { font-size: 5rem; text-align: center; color: #ffaa00; text-transform: uppercase; }
+        .hero-text { font-size: 1.6rem; max-width: 900px; text-align: center; background: rgba(0,0,0,0.75); padding: 30px; border-radius: 20px; border: 2px solid #ffaa00; line-height: 1.5; }
+        
+        /* Couleurs pour le matériel Base 10 SVG */
+        .b10-th { fill: #3498db; stroke: #2980b9; stroke-width: 1; }
+        .b10-h { fill: #2ecc71; stroke: #27ae60; stroke-width: 1; }
+        .b10-t { fill: #e67e22; stroke: #d35400; stroke-width: 1; }
+        .b10-u { fill: #f1c40f; stroke: #f39c12; stroke-width: 1; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Système de particules global -->
+    <div id="particles"></div>
+
+    <!-- Écran Titre -->
+    <div id="start-screen" class="overlay visible">
+        <h1 class="hero-title">L'Évasion du Manoir<br>Mathématique</h1>
+        <div class="hero-text">
+            <p>🎃 Bienvenue, jeune mathématicien(ne) ! Tu es piégé(e) dans un manoir magique.</p>
+            <p style="margin-top: 15px;">Pour t'échapper avant minuit, tu dois traverser <b>6 salles</b>. Dans chaque salle, résous <b>5 énigmes</b> pour obtenir les chiffres d'un <b style="color:var(--success);">Code Secret</b>. Utilise ce code pour ouvrir le coffre, trouver la clé, et franchir la porte magique !</p>
+        </div>
+        <button class="btn btn-submit" style="font-size: 2.2rem; padding: 20px 50px; border-radius: 50px;" onclick="startGame()">ENTRER DANS LE MANOIR</button>
+    </div>
+
+    <!-- Écran Victoire -->
+    <div id="end-screen" class="overlay" style="z-index: 5000;">
+        <h1 class="hero-title" style="color: #39ff14; text-shadow: 0 0 30px #39ff14;">VICTOIRE !</h1>
+        <div class="hero-text">
+            <p>Incroyable ! Tu as rassemblé les 6 clés magiques et prouvé ta maîtrise des nombres !</p>
+            <p style="margin-top:10px;">Le manoir te laisse partir sain et sauf... Joyeuse Halloween ! 🦇</p>
+        </div>
+        <div class="magic-door-container" style="width: 250px; height: 350px; margin-top: 30px;">
+            <div class="magic-door unlocked open" style="opacity: 1;">
+                <div class="door-frame"><div class="portal-vortex" style="opacity: 1; background: conic-gradient(from 0deg, #39ff14, #fff, #39ff14);"></div></div>
+                <div class="door-panel" style="background: linear-gradient(135deg, #ffd700, #daa520);"></div>
+            </div>
+        </div>
+        <button class="btn btn-submit" style="margin-top: 25px; font-size: 1.8rem; padding: 15px 40px; border-radius: 40px;" onclick="restartGame()">REJOUER</button>
+    </div>
+
+    <div id="game-layout">
+        <header id="hud">
+            <div class="hud-section" style="flex: 1;">
+                <h2 id="room-title">Salle 1</h2>
+            </div>
+            
+            <div class="hud-section" id="code-tracker-container">
+                <div class="code-tracker-label">CODE DU COFFRE</div>
+                <div id="code-tracker">
+                    <div class="code-slot-wrapper"><div class="code-slot" id="slot-0">_</div><span class="slot-hint">1er</span></div>
+                    <div class="code-slot-wrapper"><div class="code-slot" id="slot-1">_</div><span class="slot-hint">2e</span></div>
+                    <div class="code-slot-wrapper"><div class="code-slot" id="slot-2">_</div><span class="slot-hint">3e</span></div>
+                    <div class="code-slot-wrapper"><div class="code-slot" id="slot-3">_</div><span class="slot-hint">4e</span></div>
+                    <div class="code-slot-wrapper"><div class="code-slot" id="slot-4">_</div><span class="slot-hint">5e</span></div>
+                </div>
+            </div>
+
+            <div class="hud-section" style="flex: 1; justify-content: flex-end;">
+                <span class="comic-font" style="font-size: 1.4rem; color: #aaa;">Clés:</span>
+                <div id="key-inventory">
+                    <!-- Clés injectées par JS -->
+                </div>
+            </div>
+        </header>
+
+        <main id="room-environment">
+            <div class="interactive-zone" id="puzzles-station">
+                <!-- Boutons d'énigmes injectés ici -->
+            </div>
+
+            <div class="interactive-zone" id="center-stage">
+                <div id="art-container" class="floating-math-art"></div>
+            </div>
+
+            <div class="interactive-zone" id="chest-station">
+                <div class="chest" id="the-chest" onclick="openChestPad()">
+                    <div class="chest-glow"></div>
+                    <div class="lock"></div>
+                </div>
+            </div>
+
+            <div class="interactive-zone" id="door-station">
+                <div class="magic-door-container">
+                    <div class="magic-door" id="the-door" onclick="tryDoor()">
+                        <div class="door-frame"><div class="portal-vortex"></div></div>
+                        <div class="door-panel">
+                            <div class="door-knob"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="puzzle-modal" class="overlay">
+        <div class="modal-panel">
+            <span class="close-btn" onclick="closeModal('puzzle-modal')">&times;</span>
+            <div class="puzzle-header-info" id="puzzle-order-hint"></div>
+            <h2 class="puzzle-title" id="puzzle-title">Titre</h2>
+            
+            <div id="puzzle-visual" class="math-visual-container" style="display:none;"></div>
+            
+            <div class="puzzle-question" id="puzzle-question">Question ?</div>
+            
+            <div id="puzzle-input-area" class="options-grid">
+                <!-- Contenu interactif injecté dynamiquement -->
+            </div>
+            
+            <!-- Bouton de validation générique caché par défaut, utilisé pour input ou selection multiple -->
+            <button id="generic-validate-btn" class="btn btn-submit" style="display:none;" onclick="validateGeneric()">VALIDER</button>
+        </div>
+    </div>
+
+    <div id="chest-modal" class="overlay">
+        <div class="modal-panel" style="max-width: 450px;">
+            <span class="close-btn" onclick="closeModal('chest-modal')">&times;</span>
+            <h2 class="puzzle-title" style="color: #ffd700;">Serrure Magique</h2>
+            <p style="font-size: 1.2rem; margin-bottom: 20px;">Saisis le code à 5 chiffres révélé par les énigmes.</p>
+            
+            <div class="chest-code-display" id="pad-display">_ _ _ _ _</div>
+            
+            <div class="keypad">
+                <button class="key-btn" onclick="padInput(1)">1</button>
+                <button class="key-btn" onclick="padInput(2)">2</button>
+                <button class="key-btn" onclick="padInput(3)">3</button>
+                <button class="key-btn" onclick="padInput(4)">4</button>
+                <button class="key-btn" onclick="padInput(5)">5</button>
+                <button class="key-btn" onclick="padInput(6)">6</button>
+                <button class="key-btn" onclick="padInput(7)">7</button>
+                <button class="key-btn" onclick="padInput(8)">8</button>
+                <button class="key-btn" onclick="padInput(9)">9</button>
+                <button class="key-btn clear" onclick="padClear()">C</button>
+                <button class="key-btn" onclick="padInput(0)">0</button>
+                <button class="key-btn enter" onclick="padSubmit()">OUVRIR</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="feedback" class="feedback-text"></div>
+
+    <script>
+        // Global state object
+        let gameState = {
+            currentRoomIdx: 0,
+            keysCollected: 0,
+            activePuzzleIdx: null,
+            currentSelection: [],
+            padInputValue: "",
+            roomCodeFound: [null, null, null, null, null],
+            puzzlesSolvedStatus: [false, false, false, false, false],
+            chestUnlocked: false,
+            doorUnlocked: false
+        };
+
+        // Definitions for the 6 rooms (theme colors, titles, and Pixar/Ghibli style SVG artwork)
+        const roomsDef = [
+            {
+                title: "Salle 1 : Hall Hanté",
+                colors: { prim: "#1a0b2e", sec: "#32145a", glow: "#ff8800" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <defs>
+                        <radialGradient id="pumpkinGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#ffaa00"/>
+                            <stop offset="100%" stop-color="#d35400"/>
+                        </radialGradient>
+                    </defs>
+                    <ellipse cx="100" cy="110" rx="70" ry="55" fill="url(#pumpkinGrad)"/>
+                    <ellipse cx="75" cy="110" rx="45" ry="52" fill="url(#pumpkinGrad)"/>
+                    <ellipse cx="125" cy="110" rx="45" ry="52" fill="url(#pumpkinGrad)"/>
+                    <path d="M 95 58 C 95 40, 115 35, 110 25 C 105 35, 100 45, 100 58 Z" fill="#27ae60"/>
+                    <polygon points="70,95 85,105 70,110" fill="#fff" filter="drop-shadow(0 0 8px #fff)"/>
+                    <polygon points="130,95 115,105 130,110" fill="#fff" filter="drop-shadow(0 0 8px #fff)"/>
+                    <path d="M 70 130 Q 100 155 130 130 Q 115 145 100 135 Q 85 145 70 130 Z" fill="#fff" filter="drop-shadow(0 0 8px #fff)"/>
+                </svg>`
+            },
+            {
+                title: "Salle 2 : Bibliothèque des Sorcières",
+                colors: { prim: "#0b1d2e", sec: "#173e5c", glow: "#00e5ff" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <path d="M 30 100 Q 100 70 100 120 Q 100 70 170 100 L 165 145 Q 100 115 100 160 Q 100 115 35 145 Z" fill="#8e44ad" stroke="#f1c40f" stroke-width="3"/>
+                    <path d="M 35 95 Q 100 65 100 115 Q 100 65 165 95 L 160 140 Q 100 110 100 155 Q 100 110 40 140 Z" fill="#f39c12"/>
+                    <circle cx="100" cy="110" r="12" fill="#9b59b6" stroke="#fff" stroke-width="2"/>
+                    <path d="M 100 60 L 100 155" stroke="#7d3c98" stroke-width="3"/>
+                </svg>`
+            },
+            {
+                title: "Salle 3 : Laboratoire d'Alchimie",
+                colors: { prim: "#0d2818", sec: "#164a29", glow: "#39ff14" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <path d="M 85 50 L 115 50 L 115 80 L 150 140 A 30 30 0 0 1 120 175 L 80 175 A 30 30 0 0 1 50 140 L 85 80 Z" fill="none" stroke="#2ecc71" stroke-width="6"/>
+                    <path d="M 58 135 L 142 135 A 25 25 0 0 1 120 170 L 80 170 A 25 25 0 0 1 58 135 Z" fill="#2ecc71" opacity="0.8"/>
+                    <circle cx="90" cy="120" r="8" fill="#a3e4d7"/>
+                    <circle cx="110" cy="100" r="5" fill="#a3e4d7"/>
+                    <circle cx="100" cy="70" r="10" fill="#39ff14" filter="drop-shadow(0 0 8px #39ff14)"/>
+                </svg>`
+            },
+            {
+                title: "Salle 4 : Serre Carnivore",
+                colors: { prim: "#2a0826", sec: "#4d1046", glow: "#ff007f" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <path d="M 100 180 Q 90 130 100 100" stroke="#27ae60" stroke-width="10" fill="none"/>
+                    <path d="M 60 70 A 40 40 0 0 1 140 70 A 40 40 0 0 1 60 70" fill="#e74c3c"/>
+                    <path d="M 60 70 Q 100 110 140 70" fill="#c0392b"/>
+                    <polygon points="70,70 75,80 80,70" fill="#fff"/>
+                    <polygon points="90,70 95,82 100,70" fill="#fff"/>
+                    <polygon points="110,70 115,82 120,70" fill="#fff"/>
+                    <polygon points="125,70 130,78 135,70" fill="#fff"/>
+                </svg>`
+            },
+            {
+                title: "Salle 5 : Crypte Obscure",
+                colors: { prim: "#181818", sec: "#333333", glow: "#e67e22" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <ellipse cx="100" cy="140" rx="60" ry="35" fill="#222" stroke="#444" stroke-width="4"/>
+                    <ellipse cx="100" cy="125" rx="50" ry="15" fill="#e67e22" opacity="0.9"/>
+                    <path d="M 40 90 Q 100 80 160 90 C 130 85 120 40 100 10 C 80 40 70 85 40 90 Z" fill="#2c3e50"/>
+                    <path d="M 72 80 Q 100 75 128 80 L 125 70 Q 100 66 75 70 Z" fill="#e74c3c"/>
+                </svg>`
+            },
+            {
+                title: "Salle 6 : Tour du Magister",
+                colors: { prim: "#090a21", sec: "#1d1f54", glow: "#ffd700" },
+                svgArt: `<svg width="200" height="200" viewBox="0 0 200 200">
+                    <circle cx="100" cy="100" r="65" fill="none" stroke="#ffd700" stroke-width="5" stroke-dasharray="10 5"/>
+                    <circle cx="100" cy="100" r="45" fill="none" stroke="#f39c12" stroke-width="3"/>
+                    <polygon points="100,45 112,88 155,100 112,112 100,155 88,112 45,100 88,88" fill="#ffd700" filter="drop-shadow(0 0 10px #ffd700)"/>
+                </svg>`
+            }
+        ];
+
+        // Background floating magic particles initializer
+        function createParticles() {
+            const container = document.getElementById('particles');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < 25; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                p.style.left = Math.random() * 100 + 'vw';
+                p.style.width = (Math.random() * 8 + 4) + 'px';
+                p.style.height = p.style.width;
+                p.style.animationDuration = (Math.random() * 6 + 4) + 's';
+                p.style.animationDelay = (Math.random() * 5) + 's';
+                container.appendChild(p);
+            }
+        }
+        window.addEventListener('DOMContentLoaded', createParticles);
+
+        function genBase10(th, h, t, u) {
+            let html = '<div class="b10-container" style="display:flex; flex-wrap:wrap; gap:15px; justify-content:center; align-items:flex-end; width:100%;">';
+
+            // Milliers (Cubes 3D isométriques parfaits)
+            if (th > 0) {
+                html += '<div class="b10-group" style="display:flex; flex-direction:column; align-items:center; background:rgba(52,152,219,0.15); padding:10px 14px; border-radius:14px; border:1px solid rgba(52,152,219,0.4);"><span style="font-size:0.85rem; font-weight:bold; color:#5adeff; margin-bottom:6px;">Milliers (1000)</span><div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">';
+                for (let i = 0; i < Math.min(th, 5); i++) {
+                    html += `<svg width="70" height="75" viewBox="0 0 70 75" style="filter: drop-shadow(0px 4px 6px rgba(0,0,0,0.5));">
+                        <!-- Face Supérieure -->
+                        <polygon points="35,5 65,20 35,35 5,20" fill="#4aa3df" stroke="#1d6fa5" stroke-width="1.5"/>
+                        <!-- Grille sur face supérieure -->
+                        <path d="M 11,17 L 41,32 M 17,14 L 47,29 M 23,11 L 53,26 M 29,8 L 59,23" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+                        <path d="M 11,23 L 41,8 M 17,26 L 47,11 M 23,29 L 53,14 M 29,32 L 59,17" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+                        <!-- Face Gauche -->
+                        <polygon points="5,20 35,35 35,65 5,50" fill="#2980b9" stroke="#1d6fa5" stroke-width="1.5"/>
+                        <path d="M 5,26 L 35,41 M 5,32 L 35,47 M 5,38 L 35,53 M 5,44 L 35,59" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
+                        <!-- Face Droite -->
+                        <polygon points="35,35 65,20 65,50 35,65" fill="#1c5980" stroke="#113d59" stroke-width="1.5"/>
+                        <path d="M 35,41 L 65,26 M 35,47 L 65,32 M 35,53 L 65,38 M 35,59 L 65,44" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+                    </svg>`;
+                }
+                html += '</div></div>';
+            }
+
+            // Centaines (Plaques 3D de 100 isométriques)
+            if (h > 0) {
+                html += '<div class="b10-group" style="display:flex; flex-direction:column; align-items:center; background:rgba(46,204,113,0.15); padding:10px 14px; border-radius:14px; border:1px solid rgba(46,204,113,0.4);"><span style="font-size:0.85rem; font-weight:bold; color:#72ffaa; margin-bottom:6px;">Centaines (100)</span><div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">';
+                for (let i = 0; i < h; i++) {
+                    html += `<svg width="65" height="50" viewBox="0 0 65 50" style="filter: drop-shadow(0px 3px 5px rgba(0,0,0,0.4));">
+                        <!-- Face Supérieure -->
+                        <polygon points="32.5,5 60,18.75 32.5,32.5 5,18.75" fill="#2ecc71" stroke="#1e8449" stroke-width="1.2"/>
+                        <!-- Quadrillage 10x10 -->
+                        <path d="M 10.5,16 L 38,29.75 M 16,13.25 L 43.5,27 M 21.5,10.5 L 49,24.25 M 27,7.75 L 54.5,21.5" stroke="rgba(0,0,0,0.25)" stroke-width="0.8"/>
+                        <path d="M 10.5,21.5 L 38,7.75 M 16,24.25 L 43.5,10.5 M 21.5,27 L 49,13.25 M 27,29.75 L 54.5,16" stroke="rgba(0,0,0,0.25)" stroke-width="0.8"/>
+                        <!-- Épaisseurs -->
+                        <polygon points="5,18.75 32.5,32.5 32.5,37.5 5,23.75" fill="#27ae60" stroke="#1e8449" stroke-width="1.2"/>
+                        <polygon points="32.5,32.5 60,18.75 60,23.75 32.5,37.5" fill="#1e8449" stroke="#145a32" stroke-width="1.2"/>
+                    </svg>`;
+                }
+                html += '</div></div>';
+            }
+
+            // Dizaines (Bâtonnets 3D de 10)
+            if (t > 0) {
+                html += '<div class="b10-group" style="display:flex; flex-direction:column; align-items:center; background:rgba(230,126,34,0.15); padding:10px 14px; border-radius:14px; border:1px solid rgba(230,126,34,0.4);"><span style="font-size:0.85rem; font-weight:bold; color:#ffb072; margin-bottom:6px;">Dizaines (10)</span><div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center;">';
+                for (let i = 0; i < t; i++) {
+                    html += `<svg width="22" height="75" viewBox="0 0 22 75" style="filter: drop-shadow(0px 3px 4px rgba(0,0,0,0.4));">
+                        <!-- Ombre -->
+                        <polygon points="11,70 20,74 11,78 2,74" fill="rgba(0,0,0,0.3)"/>
+                        <!-- Sommet -->
+                        <polygon points="11,2 19,6 11,10 3,6" fill="#f39c12" stroke="#d35400" stroke-width="1"/>
+                        <!-- Faces -->
+                        <polygon points="3,6 11,10 11,66 3,62" fill="#e67e22" stroke="#d35400" stroke-width="1"/>
+                        <polygon points="11,10 19,6 19,62 11,66" fill="#d35400" stroke="#a04000" stroke-width="1"/>
+                        <!-- 10 Divisions -->
+                        <path d="M 3,11.6 L 11,15.6 L 19,11.6 M 3,17.2 L 11,21.2 L 19,17.2 M 3,22.8 L 11,26.8 L 19,22.8 M 3,28.4 L 11,32.4 L 19,28.4 M 3,34 L 11,38 L 19,34 M 3,39.6 L 11,43.6 L 19,39.6 M 3,45.2 L 11,49.2 L 19,45.2 M 3,50.8 L 11,54.8 L 19,50.8 M 3,56.4 L 11,60.4 L 19,56.4" stroke="#a04000" stroke-width="1"/>
+                    </svg>`;
+                }
+                html += '</div></div>';
+            }
+
+            // Unités (Cubes 3D de 1)
+            if (u > 0) {
+                html += '<div class="b10-group" style="display:flex; flex-direction:column; align-items:center; background:rgba(241,196,15,0.15); padding:10px 14px; border-radius:14px; border:1px solid rgba(241,196,15,0.4);"><span style="font-size:0.85rem; font-weight:bold; color:#ffeb72; margin-bottom:6px;">Unités (1)</span><div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:200px;">';
+                for (let i = 0; i < u; i++) {
+                    html += `<svg width="22" height="24" viewBox="0 0 22 24" style="filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4));">
+                        <polygon points="11,2 19,6 11,10 3,6" fill="#f4d03f" stroke="#f39c12" stroke-width="1"/>
+                        <polygon points="3,6 11,10 11,18 3,14" fill="#f1c40f" stroke="#f39c12" stroke-width="1"/>
+                        <polygon points="11,10 19,6 19,14 11,18" fill="#d4ac0d" stroke="#b7950b" stroke-width="1"/>
+                    </svg>`;
+                }
+                html += '</div></div>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        /*
+            Types de défis:
+            - 'mcq': Choix multiple (Génère des boutons)
+            - 'input': Entrée clavier/numérique (Génère un champ + bouton valider)
+            - 'visual': Comme input, mais affiche un visuel SVG
+            - 'select-multiple': L'élève doit cliquer sur plusieurs éléments pour les sélectionner (Mécanique "Trier/Classer" robuste sans bug)
+        */
+        const allPuzzles = [
+            // SALLE 1 : Valeur de position (Code attendu: 4 2 8 3 7)
+            [
+                { type: 'mcq', title: "Fantôme des Milliers", question: "Quelle est la valeur du chiffre 4 dans le nombre 3 456 ?", options: ["4", "40", "400", "4000"], correct: "400", digitReward: 4, hint: "Prends le premier chiffre de ta réponse." },
+                { type: 'visual', title: "Blocs Hantés", visualFn: () => genBase10(2, 0, 5, 2), question: "Quel nombre est représenté par ces blocs magiques ?<br><br><b>Saisis le nombre total.</b>", correct: "2052", digitReward: 2, hint: "Le chiffre des milliers est ton indice." }, // 2052 -> milliers = 2
+                { type: 'input', title: "Assemblage Macabre", question: "Je suis composé de :<br>8 centaines, 3 dizaines et 5 unités.<br>Qui suis-je ?", correct: "835", digitReward: 8, hint: "Le chiffre des centaines de ta réponse." }, // 835 -> 8
+                { type: 'mcq', title: "Mots en Chiffres", question: "Comment écrit-on le nombre « Trois mille quarante » ?", options: ["3400", "3040", "3004", "304"], correct: "3040", digitReward: 3, hint: "Le chiffre des milliers est l'indice." },
+                { type: 'input', title: "Échange de Bonbons", question: "Un vampire a 700 bonbons. Il en reçoit 4 dizaines supplémentaires.<br>Combien en a-t-il au total ?", correct: "740", digitReward: 7, hint: "Le chiffre des centaines." } // 740 -> 7
+            ],
+            // SALLE 2 : Composer/Décomposer (Code: 5 0 9 2 6)
+            [
+                { type: 'mcq', title: "Potion de Décomposition", question: "Quelle est la bonne décomposition du nombre 5 026 ?", options: ["5000 + 200 + 6", "500 + 20 + 6", "5000 + 20 + 6", "50 + 26"], correct: "5000 + 20 + 6", digitReward: 5, hint: "Le chiffre des unités de mille du grand nombre." },
+                { type: 'input', title: "Trou d'Araignée", question: "Complète l'équation de la sorcière :<br> 8 345 = 8 000 + _____ + 40 + 5<br>Que vaut la partie manquante ?", correct: "300", digitReward: 0, hint: "Le chiffre des unités de la réponse manquante." }, // 300 -> 0
+                { type: 'select-multiple', title: "Ingrédients Multiples", question: "Sélectionne TOUTES les expressions qui sont égales à 900 :", options: ["800 + 100", "90 + 10", "1000 - 100", "500 + 500"], correct: ["800 + 100", "1000 - 100"], digitReward: 9, hint: "Le nombre ciblé (900) donne son chiffre des centaines." },
+                { type: 'visual', title: "Tableau Mystère", visualFn: () => `<div style="background:#222; padding:15px; border-radius:10px;"><table style="width:100%; text-align:center; font-size:1.5rem; color:#fff;" border="1"><tr><th>UM</th><th>C</th><th>D</th><th>U</th></tr><tr><td>4</td><td>2</td><td>0</td><td>5</td></tr></table></div>`, question: "Quel est ce nombre ?", correct: "4205", digitReward: 2, hint: "Le chiffre des centaines." },
+                { type: 'input', title: "La Recette", question: "Mélange : (6 x 1000) + (8 x 10).<br>Quel est le nombre total ?", correct: "6080", digitReward: 6, hint: "Le chiffre des unités de mille." }
+            ],
+            // SALLE 3 : Comparer (Code: 8 5 0 2 1)
+            [
+                { type: 'mcq', title: "Duel de Spectres", question: "Lequel de ces nombres est le PLUS GRAND ?", options: ["4 567", "4 876", "4 765", "4 867"], correct: "4 876", digitReward: 8, hint: "Prends le chiffre des centaines de la bonne réponse." }, // 4876 -> 8
+                { type: 'mcq', title: "La Balance Magique", question: "Choisis le bon symbole pour comparer :<br>3 500  ___  3 050", options: ["< (Plus petit que)", "> (Plus grand que)", "= (Égal)"], correct: "> (Plus grand que)", digitReward: 5, hint: "Prends le chiffre des centaines du plus grand nombre." }, // 3500 -> 5
+                { type: 'select-multiple', title: "Chasse aux Petits", question: "Sélectionne TOUS les nombres strictement PLUS PETITS que 2 100 :", options: ["2099", "2101", "2000", "2110"], correct: ["2099", "2000"], digitReward: 0, hint: "Le chiffre des dizaines de 2100." },
+                { type: 'input', title: "Frayeur au Classement", question: "Fantôme A fait peur à 1250 personnes. Fantôme B à 1520 personnes.<br>Quel est l'écart (la différence) entre les deux scores ?", correct: "270", digitReward: 2, hint: "Le chiffre des centaines de la différence." }, // 270 -> 2
+                { type: 'mcq', title: "Vrai ou Faux", question: "L'énoncé suivant est-il VRAI ou FAUX ?<br><br> 1 098 > 1 908", options: ["Vrai", "Faux"], correct: "Faux", digitReward: 1, hint: "Si Faux, le chiffre est 1. Si Vrai, c'est 9." }
+            ],
+            // SALLE 4 : Ordonner (Code: 1 9 4 5 3)
+            [
+                { type: 'mcq', title: "Ordre Croissant", question: "Quelle liste est placée en ordre CROISSANT (du plus petit au plus grand) ?", options: ["120, 210, 102", "102, 120, 210", "210, 120, 102"], correct: "102, 120, 210", digitReward: 1, hint: "Le chiffre des centaines du plus petit nombre." }, // 102 -> 1
+                { type: 'mcq', title: "Ordre Décroissant", question: "Quelle liste est en ordre DÉCROISSANT ?", options: ["5000, 4999, 4990", "4990, 4999, 5000", "4999, 5000, 4990"], correct: "5000, 4999, 4990", digitReward: 9, hint: "Le chiffre des dizaines du nombre du milieu." }, // 4999 -> 9
+                { type: 'visual', title: "La Droite Numérique", visualFn: () => `<svg width="100%" height="80" viewBox="0 0 400 80"><line x1="20" y1="40" x2="380" y2="40" stroke="#fff" stroke-width="4"/><line x1="50" y1="30" x2="50" y2="50" stroke="#fff" stroke-width="4"/><text x="50" y="70" fill="#fff" text-anchor="middle">400</text><line x1="200" y1="25" x2="200" y2="55" stroke="#ff0000" stroke-width="4"/><text x="200" y="20" fill="#ff0000" font-weight="bold" text-anchor="middle">?</text><line x1="350" y1="30" x2="350" y2="50" stroke="#fff" stroke-width="4"/><text x="350" y="70" fill="#fff" text-anchor="middle">500</text></svg>`, question: "Quel nombre se trouve exactement à l'endroit du point d'interrogation rouge ?", correct: "450", digitReward: 4, hint: "Le chiffre des centaines de la réponse." }, // 450 -> 4
+                { type: 'input', title: "Suite Logique", question: "Trouve le prochain nombre de cette suite :<br>1000, 1050, 1100, 1150, ____", correct: "1200", digitReward: 5, hint: "Prends le chiffre des dizaines du nombre précédent (1150)." }, // 1150 -> 5
+                { type: 'select-multiple', title: "Les Plus Grands", question: "Sélectionne les DEUX nombres les plus grands parmi ceux-ci :", options: ["3040", "3400", "4003", "4030"], correct: ["4003", "4030"], digitReward: 3, hint: "Prends le chiffre des dizaines du plus grand nombre absolu." } // 4030 -> 3
+            ],
+            // SALLE 5 : Pair et Impair (Code: 2 7 0 8 4)
+            [
+                { type: 'mcq', title: "Nature de la Bête", question: "Le nombre 2 456 est-il pair ou impair ?", options: ["Pair", "Impair"], correct: "Pair", digitReward: 2, hint: "S'il est pair, l'indice est le chiffre des unités de mille. S'il est impair, c'est 0." }, // 2456 -> 2
+                { type: 'select-multiple', title: "Sélection Nocturne (Impairs)", question: "Clique sur TOUS les nombres IMPAIRS :", options: ["127", "450", "88", "301", "2000"], correct: ["127", "301"], digitReward: 7, hint: "Le chiffre des unités de 127." },
+                { type: 'select-multiple', title: "Sélection Nocturne (Pairs)", question: "Clique sur TOUS les nombres PAIRS :", options: ["15", "104", "800", "99", "11"], correct: ["104", "800"], digitReward: 0, hint: "Le chiffre des unités de 800." },
+                { type: 'mcq', title: "Magie d'Addition", question: "Si j'additionne un nombre PAIR avec un nombre PAIR (ex: 4 + 4), le résultat est TOUJOURS :", options: ["Pair", "Impair"], correct: "Pair", digitReward: 8, hint: "L'indice est le résultat de 4 + 4." },
+                { type: 'input', title: "Le Suivant", question: "Quel est le prochain nombre PAIR qui vient juste après 412 ?", correct: "414", digitReward: 4, hint: "Le chiffre des unités de la réponse." } // 414 -> 4
+            ],
+            // SALLE 6 : Classifier (Code: 6 5 2 1 9)
+            [
+                { type: 'mcq', title: "L'âge du Monstre", question: "Mon âge est un nombre PAIR. Il est plus grand que 24 mais plus petit que 28. Quel est mon âge ?", options: ["25", "26", "27"], correct: "26", digitReward: 6, hint: "Le chiffre des unités de l'âge." },
+                { type: 'input', title: "Règle Absolue", question: "Les nombres qui se terminent par 0 ou 5 peuvent toujours se diviser en paquets égaux de _____. (Entre le chiffre)", correct: "5", digitReward: 5, hint: "C'est la réponse elle-même." },
+                { type: 'select-multiple', title: "Double Filtre", question: "Sélectionne le ou les nombres qui sont à la fois PLUS GRANDS que 5000 ET PAIRS :", options: ["4000", "5001", "5002", "5010"], correct: ["5002", "5010"], digitReward: 2, hint: "Le chiffre des unités de 5002." },
+                { type: 'mcq', title: "Diagramme de Venn", visualFn: () => `<div style="text-align:left; background:rgba(255,255,255,0.1); padding:10px; border-radius:10px;"><p>Cercle A : Nombres impairs</p><p>Cercle B : Plus grand que 100</p></div>`, question: "Où placerais-tu le nombre 151 ?", options: ["Seulement dans A", "Seulement dans B", "Dans la zone du milieu (A et B)", "À l'extérieur des deux"], correct: "Dans la zone du milieu (A et B)", digitReward: 1, hint: "Le chiffre des dizaines de 151." },
+                { type: 'input', title: "L'Intrus", question: "Observe cette liste de nombres pairs : 2, 4, 6, 8, 9, 10. <br>Quel est le nombre intrus ?", correct: "9", digitReward: 9, hint: "L'intrus est ton indice final !" }
+            ]
+        ];
+
+        function initGameUI() {
+            const inv = document.getElementById('key-inventory');
+            inv.innerHTML = '';
+            for(let i=0; i<6; i++) {
+                inv.innerHTML += `<svg class="key-icon" viewBox="0 0 50 50"><path d="M30 15 A10 10 0 1 0 10 15 A10 10 0 0 0 30 15 Z" fill="none" stroke="currentColor" stroke-width="4"/><line x1="30" y1="15" x2="45" y2="15" stroke="currentColor" stroke-width="4"/><line x1="38" y1="15" x2="38" y2="22" stroke="currentColor" stroke-width="4"/><line x1="43" y1="15" x2="43" y2="20" stroke="currentColor" stroke-width="4"/></svg>`;
+            }
+        }
+
+        function startGame() {
+            const startScreen = document.getElementById('start-screen');
+            startScreen.classList.remove('visible');
+            startScreen.style.display = 'none';
+            initGameUI();
+            loadRoom(0);
+        }
+
+        function restartGame() {
+            document.getElementById('end-screen').classList.remove('visible');
+            const startScreen = document.getElementById('start-screen');
+            startScreen.style.display = 'flex';
+            startScreen.classList.add('visible');
+        }
+
+        function loadRoom(roomIdx) {
+            gameState.currentRoomIdx = roomIdx;
+            const room = roomsDef[roomIdx];
+            
+            // MAJ Variables CSS
+            document.documentElement.style.setProperty('--room-primary', room.colors.prim);
+            document.documentElement.style.setProperty('--room-secondary', room.colors.sec);
+            document.documentElement.style.setProperty('--door-glow', room.colors.glow);
+            
+            document.getElementById('room-title').innerText = room.title;
+            
+            // Reset état de la salle
+            gameState.roomCodeFound = [null, null, null, null, null];
+            gameState.puzzlesSolvedStatus = [false, false, false, false, false];
+            gameState.chestUnlocked = false;
+            gameState.doorUnlocked = false;
+            
+            updateHUDCode();
+            
+            document.getElementById('art-container').innerHTML = room.svgArt;
+            
+            // Génération des boutons d'énigme
+            const puzzleStation = document.getElementById('puzzles-station');
+            puzzleStation.innerHTML = '';
+            for(let i=0; i<5; i++) {
+                puzzleStation.innerHTML += `<div class="puzzle-trigger" id="btn-puz-${i}" data-hint="Donne le ${i+1}e chiffre" onclick="openPuzzle(${i})">${i+1}</div>`;
+            }
+
+            // Reset objets
+            const chest = document.getElementById('the-chest');
+            chest.className = 'chest';
+            
+            const door = document.getElementById('the-door');
+            door.className = 'magic-door';
+        }
+
+        function updateHUDCode() {
+            for(let i=0; i<5; i++) {
+                const slot = document.getElementById(`slot-${i}`);
+                if(gameState.roomCodeFound[i] !== null) {
+                    slot.innerText = gameState.roomCodeFound[i];
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerText = '_';
+                    slot.classList.remove('filled');
+                }
+            }
+            
+            if(gameState.puzzlesSolvedStatus.every(s => s === true) && !gameState.chestUnlocked) {
+                document.getElementById('the-chest').classList.add('active');
+            }
+        }
+
+        function openPuzzle(idx) {
+            if(gameState.puzzlesSolvedStatus[idx]) return;
+            
+            gameState.activePuzzleIdx = idx;
+            gameState.currentSelection = []; // Reset select state
+            
+            const pData = allPuzzles[gameState.currentRoomIdx][idx];
+            
+            document.getElementById('puzzle-order-hint').innerText = `Énigme ${idx + 1} / 5 (Révèle le ${idx + 1}e chiffre du code)`;
+            document.getElementById('puzzle-title').innerText = pData.title;
+            
+            let qText = pData.question;
+            if(pData.hint) qText += `<br><br><span style="color:var(--accent-glow); font-size:1.1rem; font-style:italic;">💡 Indice magique : ${pData.hint}</span>`;
+            document.getElementById('puzzle-question').innerHTML = qText;
+            
+            const visCont = document.getElementById('puzzle-visual');
+            if(pData.visualFn) {
+                visCont.style.display = 'flex';
+                visCont.innerHTML = pData.visualFn();
+            } else {
+                visCont.style.display = 'none';
+            }
+
+            const inputArea = document.getElementById('puzzle-input-area');
+            inputArea.innerHTML = '';
+            const genBtn = document.getElementById('generic-validate-btn');
+            genBtn.style.display = 'none';
+            
+            try {
+                if(pData.type === 'mcq') {
+                    pData.options.forEach(opt => {
+                        const btn = document.createElement('button');
+                        btn.className = 'btn'; btn.innerText = opt;
+                        btn.onclick = () => validateAnswer(opt);
+                        inputArea.appendChild(btn);
+                    });
+                } 
+                else if (pData.type === 'input' || pData.type === 'visual') {
+                    const input = document.createElement('input');
+                    input.type = 'number'; input.className = 'number-input'; input.id = 'text-answer-input';
+                    input.onkeyup = function(e) { if(e.key === 'Enter') validateGeneric(); };
+                    inputArea.style.display = 'flex'; inputArea.style.justifyContent = 'center';
+                    inputArea.appendChild(input);
+                    genBtn.style.display = 'block';
+                    setTimeout(() => input.focus(), 100);
+                }
+                else if (pData.type === 'select-multiple') {
+                    pData.options.forEach(opt => {
+                        const div = document.createElement('div');
+                        div.className = 'selectable-item'; div.innerText = opt;
+                        div.onclick = function() {
+                            this.classList.toggle('selected');
+                            const idx = gameState.currentSelection.indexOf(opt);
+                            if(idx > -1) gameState.currentSelection.splice(idx, 1);
+                            else gameState.currentSelection.push(opt);
+                        };
+                        inputArea.appendChild(div);
+                    });
+                    genBtn.style.display = 'block';
+                }
+            } catch (e) {
+                console.error("Erreur génération UI puzzle", e);
+            }
+
+            document.getElementById('puzzle-modal').classList.add('visible');
+        }
+
+        function validateGeneric() {
+            const pData = allPuzzles[gameState.currentRoomIdx][gameState.activePuzzleIdx];
+            if(pData.type === 'input' || pData.type === 'visual') {
+                const val = document.getElementById('text-answer-input').value.trim();
+                if(val === "") return;
+                validateAnswer(val);
+            } else if (pData.type === 'select-multiple') {
+                // Tri pour comparer les tableaux peu importe l'ordre
+                const userSel = [...gameState.currentSelection].sort();
+                const correctSel = [...pData.correct].sort();
+                const isMatch = (userSel.length === correctSel.length) && userSel.every((val, index) => val === correctSel[index]);
+                validateAnswer(isMatch ? pData.correct : "wrong"); // Passe un flag de réussite ou d'échec
+            }
+        }
+
+        function validateAnswer(userAnswer) {
+            const pData = allPuzzles[gameState.currentRoomIdx][gameState.activePuzzleIdx];
+            let isCorrect = false;
+
+            if(pData.type === 'select-multiple') {
+                // userAnswer est passé tel quel si correct depuis validateGeneric
+                isCorrect = (userAnswer === pData.correct); 
+            } else {
+                const cleanUser = String(userAnswer).replace(/\s/g, '').toLowerCase();
+                const cleanCorrect = String(pData.correct).replace(/\s/g, '').toLowerCase();
+                isCorrect = (cleanUser === cleanCorrect);
+            }
+
+            if(isCorrect) {
+                showFeedback(true);
+                const idx = gameState.activePuzzleIdx;
+                gameState.puzzlesSolvedStatus[idx] = true;
+                gameState.roomCodeFound[idx] = pData.digitReward;
+                
+                const btn = document.getElementById(`btn-puz-${idx}`);
+                btn.classList.add('solved'); btn.innerHTML = '✓';
+                
+                updateHUDCode();
+                setTimeout(() => closeModal('puzzle-modal'), 1000);
+            } else {
+                showFeedback(false);
+            }
+        }
+
+        function openChestPad() {
+            const chest = document.getElementById('the-chest');
+            if(chest.classList.contains('opened')) return;
+            if(!chest.classList.contains('active')) {
+                showFeedback(false, "Trouve les 5 chiffres !");
+                return;
+            }
+            gameState.padInputValue = "";
+            updatePadDisplay();
+            document.getElementById('chest-modal').classList.add('visible');
+        }
+
+        function padInput(num) {
+            if(gameState.padInputValue.length < 5) {
+                gameState.padInputValue += num;
+                updatePadDisplay();
+            }
+        }
+        function padClear() { gameState.padInputValue = ""; updatePadDisplay(); }
+        function updatePadDisplay() {
+            const disp = document.getElementById('pad-display');
+            let txt = gameState.padInputValue.split('').join(' ');
+            while(txt.length < 9) txt += " _";
+            disp.innerText = txt.trim();
+        }
+
+        function padSubmit() {
+            if(gameState.padInputValue.length !== 5) return;
+            
+            const expectedCode = gameState.roomCodeFound.join('');
+            if(gameState.padInputValue === expectedCode) {
+                showFeedback(true, "COFFRE DÉVERROUILLÉ !");
+                closeModal('chest-modal');
+                
+                const chest = document.getElementById('the-chest');
+                chest.classList.remove('active'); chest.classList.add('opened');
+                gameState.chestUnlocked = true;
+
+                // Animation Clé & Porte
+                setTimeout(() => {
+                    const keys = document.querySelectorAll('.key-icon');
+                    if(keys[gameState.keysCollected]) keys[gameState.keysCollected].classList.add('collected');
+                    gameState.keysCollected++;
+                    
+                    const door = document.getElementById('the-door');
+                    door.classList.add('unlocked');
+                    gameState.doorUnlocked = true;
+                }, 1000);
+            } else {
+                showFeedback(false, "MAUVAIS CODE");
+                padClear();
+            }
+        }
+
+        function tryDoor() {
+            const door = document.getElementById('the-door');
+            if(door.classList.contains('open')) return;
+            
+            if(gameState.doorUnlocked) {
+                door.classList.add('open');
+                
+                setTimeout(() => {
+                    if(gameState.currentRoomIdx < roomsDef.length - 1) {
+                        // Transition fondue noire
+                        const overlay = document.createElement('div');
+                        overlay.style.position = 'fixed'; overlay.style.inset = 0; overlay.style.backgroundColor = '#000';
+                        overlay.style.zIndex = 4000; overlay.style.opacity = 0; overlay.style.transition = 'opacity 1s';
+                        document.body.appendChild(overlay);
+                        
+                        setTimeout(() => overlay.style.opacity = 1, 50);
+                        
+                        setTimeout(() => {
+                            loadRoom(gameState.currentRoomIdx + 1);
+                            overlay.style.opacity = 0;
+                            setTimeout(() => overlay.remove(), 1000);
+                        }, 1200);
+                    } else {
+                        // Fin du jeu
+                        document.getElementById('end-screen').classList.add('visible');
+                    }
+                }, 1500);
+            } else {
+                // Feedback refus
+                door.style.transform = "rotate(2deg)";
+                setTimeout(() => door.style.transform = "rotate(-2deg)", 100);
+                setTimeout(() => door.style.transform = "rotate(0)", 200);
+                showFeedback(false, "FERMÉ À CLÉ");
+            }
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.remove('visible'); }
+
+        function showFeedback(isCorrect, customMsg = null) {
+            const fb = document.getElementById('feedback');
+            fb.className = `feedback-text show ${isCorrect ? 'correct' : 'incorrect'}`;
+            fb.innerText = customMsg ? customMsg : (isCorrect ? "EXCELLENT !" : "OUPS, RÉESSAIE !");
+            setTimeout(() => fb.classList.remove('show'), 1500);
+        }
+    </script>
+</body>
+</html>
