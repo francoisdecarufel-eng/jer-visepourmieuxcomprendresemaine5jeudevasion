@@ -544,8 +544,13 @@
         <div class="modal-panel" style="max-width: 450px;">
             <span class="close-btn" onclick="closeModal('chest-modal')">&times;</span>
             <h2 class="puzzle-title" style="color: #ffd700;">Serrure Magique</h2>
-            <p style="font-size: 1.2rem; margin-bottom: 20px;">Saisis le code à 5 chiffres révélé par les énigmes.</p>
+            <p style="font-size: 1.2rem; margin-bottom: 12px;">Saisis le code à 5 chiffres révélé par les énigmes.</p>
             
+            <!-- Rappel lumineux du code découvert -->
+            <div id="revealed-code-reminder" style="background: rgba(0,0,0,0.6); padding: 10px 18px; border-radius: 12px; border: 2px solid #ff9d00; margin-bottom: 18px; font-size: 1.2rem; color: #fff; box-shadow: 0 0 15px rgba(255, 157, 0, 0.3);">
+                Code secret trouvé : <span id="revealed-code-digits" style="color: var(--success); font-family: 'Fredoka One', cursive; font-size: 1.8rem; letter-spacing: 5px; text-shadow: 0 0 10px var(--success);">_ _ _ _ _</span>
+            </div>
+
             <div class="chest-code-display" id="pad-display">_ _ _ _ _</div>
             
             <div class="keypad">
@@ -1007,6 +1012,13 @@
             }
             gameState.padInputValue = "";
             updatePadDisplay();
+
+            const foundCode = gameState.roomCodeFound.join(' ');
+            const reminderElem = document.getElementById('revealed-code-digits');
+            if(reminderElem) {
+                reminderElem.innerText = foundCode;
+            }
+
             document.getElementById('chest-modal').classList.add('visible');
         }
 
